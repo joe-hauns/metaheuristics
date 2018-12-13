@@ -2,11 +2,13 @@ use crate::problem::*;
 
 pub use self::{
    hill_climbing::*,
+   large_neighborhood_search::*,
    simulated_annealing::*,
 };
 
 pub mod hill_climbing;
 pub mod simulated_annealing;
+pub mod large_neighborhood_search;
 
 pub trait InitialSolution<P>
    where P: Problem
@@ -20,19 +22,18 @@ pub enum MaybeNeighbor<'a, P>
    NotFound(Solution<'a, P>),
 }
 
-pub trait Neighborhood {
-   type P: Problem;
-   fn find<'i, F>(&self, current: Solution<'i, Self::P>, predicate: F) -> MaybeNeighbor<'i, Self::P>
-                  where F: for<'a> FnMut(&'a Solution<Self::P>) -> bool;
+pub trait Neighborhood<P: Problem> {
+   //   type P: Problem;
+   fn find<'i, F>(&self, current: Solution<'i, P>, predicate: F) -> MaybeNeighbor<'i, P>
+                  where F: for<'a> FnMut(&'a Solution<P>) -> bool;
 }
 
-impl<'a, N> Neighborhood for &'a N
-   where N: Neighborhood,
+impl<'a, N, P> Neighborhood<P> for &'a N
+   where P: Problem,
+         N: Neighborhood<P>,
 {
-   type P = N::P;
-
-   fn find<'i, F>(&self, current: Solution<'i, <Self as Neighborhood>::P>, predicate: F) -> MaybeNeighbor<'i, Self::P>
-                  where F: for<'f> FnMut(&'f Solution<Self::P>) -> bool
+   fn find<'i, F>(&self, current: Solution<'i, P>, predicate: F) -> MaybeNeighbor<'i, P>
+                  where F: for<'f> FnMut(&'f Solution<P>) -> bool
    {
       (*self).find(current, predicate)
    }

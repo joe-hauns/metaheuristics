@@ -6,10 +6,12 @@ pub trait Problem {
    fn eval(instance: &Self::Instance, solution: &Self::Solution) -> Self::Cost;
 }
 
-pub trait Algorithm {
-   type P: Problem;
-   fn solve<'i, F>(&self, instance: &'i <Self::P as Problem>::Instance, callback: F) -> Solution<'i, Self::P>
-                   where F: for<'a> FnMut(&'a Solution<Self::P>);
+pub trait Algorithm<P>
+   where P: Problem
+{
+   //   type P: Problem;
+   fn solve<'i, F>(&self, instance: &'i <P as Problem>::Instance, callback: F) -> Solution<'i, P>
+                   where F: for<'a> FnMut(&'a Solution<P>);
 }
 
 
@@ -48,16 +50,16 @@ impl<'a, P> Solution<'a, P>
    }
 
    pub fn raw_transform<F>(&mut self, f: F)
-                 where F: FnOnce(&mut P::Solution, &mut P::Cost)
+                           where F: FnOnce(&mut P::Solution, &mut P::Cost)
    {
       f(&mut self.solution, &mut self.cost);
    }
 
    pub fn transform<F>(&mut self, f: F)
-                 where F: FnOnce(&mut P::Solution)
+                       where F: FnOnce(&mut P::Solution)
    {
       f(&mut self.solution);
-      self.cost = P::eval(self.instance,&self.solution);
+      self.cost = P::eval(self.instance, &self.solution);
    }
 
 //   pub fn map<F>(self, f: F) -> Self

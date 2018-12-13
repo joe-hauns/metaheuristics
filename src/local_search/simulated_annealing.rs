@@ -24,57 +24,18 @@ pub struct SimulatedAnnealing<I, N, R, A> {
    pub heat: A,
 }
 
-//impl<'n, I, N, R, A, Rand> Algorithm for SimulatedAnnealing<I, N, R, A>
-//   where I: InitialSolution,
-//         N: Neighborhood<'n, P=I::P>,
-//         <I::P as Problem>::Instance: 'n,
-//         <I::P as Problem>::Solution: Clone,
-//         <I::P as Problem>::Cost: Clone,
-//         R: Fn() -> Rand,
-//         A: HeatConfig<P=I::P>,
-//         Rand: Rng
-//{
-//   type P = I::P;
-//
-//   fn solve<'i, F>(&self, instance: &'i <<Self as Algorithm>::P as Problem>::Instance, mut callback: F) -> Solution<'i, Self::P>
-//                   where F: for<'a> FnMut(&'a Solution<Self::P>) {
-//      let range = Uniform::new_inclusive(0.0, 1.0);
-//
-//      let mut best = Solution::new(instance, self.initial.get(&instance));
-//      let mut current = best.clone();
-//      let mut rand = (&self.create_random)();
-//      let mut temp = self.heat.initial_temp();
-//
-//      while let Some(s) = self.neighborhood.iterator(current.clone())
-//                              .map(|n| Solution::new(instance, n))
-//                              .find(|s| s.cost() < current.cost()
-//                                 || self.heat.acceptance_probability(s, &current, &temp) >= range.sample(&mut rand)) {
-//         current = s;
-//         if current.cost() < best.cost() {
-//            best = current.clone();
-//            callback(&best);
-//         }
-//         self.heat.cool(&mut temp);
-//      }
-//
-//      best
-//   }
-//}
-
-
-impl<I, N, R, A, Rand> Algorithm for SimulatedAnnealing<I, N, R, A>
-   where I: InitialSolution<N::P>,
-         N: Neighborhood,
-         <N::P as Problem>::Solution: Clone,
-         <N::P as Problem>::Cost: Clone,
+impl<P, I, N, R, A, Rand> Algorithm<P> for SimulatedAnnealing<I, N, R, A>
+   where P: Problem,
+         I: InitialSolution<P>,
+         N: Neighborhood<P>,
+         <P as Problem>::Solution: Clone,
+         <P as Problem>::Cost: Clone,
          R: Fn() -> Rand,
-         A: Temperature<N::P>,
+         A: Temperature<P>,
          Rand: Rng
 {
-   type P = N::P;
-
-   fn solve<'i, F>(&self, instance: &'i <<Self as Algorithm>::P as Problem>::Instance, mut callback: F) -> Solution<'i, Self::P>
-                   where F: for<'a> FnMut(&'a Solution<Self::P>) {
+   fn solve<'i, F>(&self, instance: &'i <P as Problem>::Instance, mut callback: F) -> Solution<'i, P>
+                   where F: for<'a> FnMut(&'a Solution<P>) {
       let range = Uniform::new_inclusive(0.0, 1.0);
 
       let mut best = Solution::new(instance, self.initial.get(&instance));

@@ -28,20 +28,37 @@ struct Range<P>(u32, PhantomData<P>);
 
 impl<P> Range<P> { fn new(r: u32) -> Self { Range(r, PhantomData) } }
 
-existential type MyIter: Iterator<Item=i32>;
+//existential type MyIter: Iterator<Item=i32>;
 
 impl<P> Neighborhood for Range<P>
    where P: Problem<Solution=i32>,
 {
    type P = P;
-   type Iter = MyIter;
 
-   fn iterator(&self, s: Solution<P>) -> <Self as Neighborhood>::Iter {
-      let s = s.solution();
+   fn find<'i, F>(&self, mut current: Solution<'i, <Self as Neighborhood>::P>, mut predicate: F) -> MaybeNeighbor<'i, <Self as Neighborhood>::P>
+                  where F: for<'a> FnMut(&'a Solution<Self::P>) -> bool {
+      let s = *current.solution();
       let size = self.0 as i32;
-      (s - size..s + size + 1)
+      for i in (s - size..s + size + 1) {
+         current.transform(|s| *s = i);
+         if predicate(&current) {
+            return MaybeNeighbor::Found(current)
+         }
+      }
+      current.transform(|i| *i = s);
+      MaybeNeighbor::NotFound(current)
    }
+
+//
 }
+
+//   type Iter = MyIter;
+//   fn iterator(&self, s: Solution<P>) -> <Self as Neighborhood>::Iter {
+//      let s = s.solution();
+//      let size = self.0 as i32;
+//      (s - size..s + size + 1)
+//   }
+//}
 
 #[test]
 fn test_simple_convex() {

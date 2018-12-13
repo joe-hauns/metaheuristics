@@ -1,8 +1,8 @@
 #![feature(existential_type, nll)]
 //#![feature(existential_type, nll, unboxed_closures, impl_trait_in_bindings)]
 
-mod problem;
-mod local_search;
+pub mod problem;
+pub mod local_search;
 
 #[cfg(test)]
 mod tests {

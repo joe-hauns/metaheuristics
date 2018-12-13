@@ -45,24 +45,44 @@ impl GraphColoring {
 }
 
 struct SwapNodeNeighborhood;
-existential type SwapNodeIter: Iterator<Item=Vec<Node>>;
+//existential type SwapNodeIter: Iterator<Item=Vec<Node>>;
 
 impl Neighborhood for SwapNodeNeighborhood {
    type P = GraphColoring;
-   type Iter = SwapNodeIter;
 
-   fn iterator<'i>(&self, mut current: Solution<'i, <Self as Neighborhood>::P>) -> <Self as Neighborhood>::Iter {
+   fn find<'i, F>(&self, mut current: Solution<'i, <Self as Neighborhood>::P>, mut predicate: F) -> MaybeNeighbor<'i, <Self as Neighborhood>::P>
+                  where F: for<'a> FnMut(&'a Solution<Self::P>) -> bool {
       let mut rand = rand::thread_rng();
-      let mut current = current.destroy().0;
-      (0..current.len()).map(move |_| {
-         let i = rand.gen_range(0, current.len());
-         let j = rand.gen_range(0, current.len());
-         current.swap(i, j);
-         let out = current.clone();
-         current.swap(i, j);
-         out
-      })
+      let cost = current.cost().clone();
+      for _ in 0..current.solution().len() {
+         let i = rand.gen_range(0, current.solution().len());
+         let j = rand.gen_range(0, current.solution().len());
+         current.transform(|s| s.swap(i, j));
+         if predicate(&current) {
+            return MaybeNeighbor::Found(current)
+         }
+         current.raw_transform(|s, c| {
+            s.swap(i, j);
+            *c = cost.clone();
+         });
+      }
+
+      MaybeNeighbor::NotFound(current)
    }
+
+//   type Iter = SwapNodeIter;
+//   fn iterator<'i>(&self, mut current: Solution<'i, <Self as Neighborhood>::P>) -> <Self as Neighborhood>::Iter {
+//      let mut rand = rand::thread_rng();
+//      let mut current = current.destroy().0;
+//      (0..current.len()).map(move |_| {
+//         let i = rand.gen_range(0, current.len());
+//         let j = rand.gen_range(0, current.len());
+//         current.swap(i, j);
+//         let out = current.clone();
+//         current.swap(i, j);
+//         out
+//      })
+//   }
 }
 
 impl Problem for GraphColoring {
@@ -121,7 +141,7 @@ macro_rules! test {
     };
 }
 
-test!{
+test! {
    file: myciel2    , expected: 2;
    file: myciel3    , expected: 3;
    file: myciel4    , expected: 4;

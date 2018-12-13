@@ -15,16 +15,21 @@ impl<I, N> Algorithm for HillClimbing<I, N>
 
    fn solve<'i, F>(&self, instance: &'i <<Self as Algorithm>::P as Problem>::Instance, mut callback: F) -> Solution<'i, Self::P>
                    where F: for<'a> FnMut(&'a Solution<Self::P>) {
-      let mut best = Solution::new(instance, self.initial.get(&instance));
+      use self::MaybeNeighbor::*;
+      let best = Solution::new(instance, self.initial.get(&instance));
+      callback(&best);
+      let mut best = Some(best);
 
-      while let Some(s) = self.neighborhood.iterator(best.clone())
-                              .map(|n| Solution::new(instance, n))
-                              .find(|n| n.cost() < best.cost()) {
-         best = s;
-         callback(&best);
+      loop {
+         let cost = best.as_ref().unwrap().cost().clone();
+         match self.neighborhood.find(best.take().unwrap(), |n| n.cost() < &cost) {
+            Found(s) => {
+               callback(&s);
+               best = Some(s);
+            }
+            NotFound(s) => return s
+         }
       }
-
-      best
    }
 }
 

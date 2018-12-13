@@ -8,8 +8,8 @@ pub trait Problem {
 
 pub trait Algorithm {
    type P: Problem;
-   fn solve<'i, F>(&self, instance: &'i<Self::P as Problem>::Instance, callback: F) -> Solution<'i, Self::P>
-               where F: for<'a> FnMut(&'a Solution<Self::P>);
+   fn solve<'i, F>(&self, instance: &'i <Self::P as Problem>::Instance, callback: F) -> Solution<'i, Self::P>
+                   where F: for<'a> FnMut(&'a Solution<Self::P>);
 }
 
 
@@ -47,11 +47,35 @@ impl<'a, P> Solution<'a, P>
       }
    }
 
+   pub fn raw_transform<F>(&mut self, f: F)
+                 where F: FnOnce(&mut P::Solution, &mut P::Cost)
+   {
+      f(&mut self.solution, &mut self.cost);
+   }
+
+   pub fn transform<F>(&mut self, f: F)
+                 where F: FnOnce(&mut P::Solution)
+   {
+      f(&mut self.solution);
+      self.cost = P::eval(self.instance,&self.solution);
+   }
+
+//   pub fn map<F>(self, f: F) -> Self
+//                 where F: FnOnce(P::Solution) -> P::Solution
+//   {
+//      let Solution {
+//         instance,
+//         solution,
+//         cost: _,
+//      } = self;
+//      Self::new(instance, f(solution))
+//   }
+
    pub fn instance(&self) -> &P::Instance { &self.instance }
    pub fn solution(&self) -> &P::Solution { &self.solution }
    pub fn cost(&self) -> &P::Cost { &self.cost }
    pub fn destroy(self) -> (P::Solution, P::Cost) {
-      let Solution{
+      let Solution {
          instance: _, cost, solution,
       } = self;
       (solution, cost)

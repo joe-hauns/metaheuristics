@@ -5,8 +5,8 @@ pub use self::{
    simulated_annealing::*,
 };
 
-mod hill_climbing;
-mod simulated_annealing;
+pub mod hill_climbing;
+pub mod simulated_annealing;
 
 pub trait InitialSolution<P>
    where P: Problem
@@ -14,37 +14,27 @@ pub trait InitialSolution<P>
    fn get(&self, instance: &<P as Problem>::Instance) -> <P as Problem>::Solution;
 }
 
-pub trait Neighborhood {
-   type P: Problem;
-   type Iter: Iterator<Item=<Self::P as Problem>::Solution>;
-   fn iterator<'i>(&self, current: Solution<Self::P>) -> Self::Iter;
+pub enum MaybeNeighbor<'a, P>
+   where P: Problem {
+   Found(Solution<'a, P>),
+   NotFound(Solution<'a, P>),
 }
 
-//pub trait Neighborhood<'i>
-//   where <Self::P as Problem>::Instance: 'i
-//{
-//   type P: Problem;
-//   type Iter: Iterator<Item=Solution<'i, Self::P>>;
-//   fn iterator(&self, current: Solution<'i, Self::P>) -> Self::Iter;
-////   fn solution_iter(&self, current: Solution<Self::P>) -> Self::SolutionIter {
-////      self.iterator(instance, solution)
-////          .map(move |n| Solution::new(instance, n))
-////   }
-//   //   fn evaluated_iterator(&self, instance: &<Self::P as Problem>::Instance, solution: <Self::P as Problem>::Solution) -> Self::Iter2 {
-////      self.iterator(instance, solution)
-////          .map(move |n| Solution::new(instance, n))
-////   }
-//}
+pub trait Neighborhood {
+   type P: Problem;
+   fn find<'i, F>(&self, current: Solution<'i, Self::P>, predicate: F) -> MaybeNeighbor<'i, Self::P>
+                  where F: for<'a> FnMut(&'a Solution<Self::P>) -> bool;
+}
 
 impl<'a, N> Neighborhood for &'a N
    where N: Neighborhood,
 {
-
    type P = N::P;
-   type Iter = N::Iter;
 
-   fn iterator<'i>(&self, current: Solution<'i, <Self as Neighborhood>::P>) -> <Self as Neighborhood>::Iter {
-      (*self).iterator(current)
+   fn find<'i, F>(&self, current: Solution<'i, <Self as Neighborhood>::P>, predicate: F) -> MaybeNeighbor<'i, Self::P>
+                  where F: for<'f> FnMut(&'f Solution<Self::P>) -> bool
+   {
+      (*self).find(current, predicate)
    }
 }
 

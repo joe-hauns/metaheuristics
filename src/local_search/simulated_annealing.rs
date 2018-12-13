@@ -83,16 +83,21 @@ impl<I, N, R, A, Rand> Algorithm for SimulatedAnnealing<I, N, R, A>
       let mut rand = (&self.create_random)();
       let mut temp = self.heat.initial_temp();
 
-      while let Some(s) = self.neighborhood.iterator(current.clone())
-                              .map(|n| Solution::new(instance, n))
-                              .find(|s| s.cost() < current.cost()
-                                 || self.heat.acceptance_probability(s, &current, &temp) >= range.sample(&mut rand)) {
-         current = s;
-         if current.cost() < best.cost() {
-            best = current.clone();
-            callback(&best);
+      loop {
+//         let cost = current.unwrap().cost().clone();
+         match self.neighborhood
+                   .find(current.clone(),
+                         |s| s.cost() < current.cost() || self.heat.acceptance_probability(s, &current, &temp) >= range.sample(&mut rand)) {
+            MaybeNeighbor::Found(s) => {
+               current = s;
+               if current.cost() < best.cost() {
+                  best = current.clone();
+                  callback(&best);
+               }
+               self.heat.cool(&mut temp);
+            }
+            MaybeNeighbor::NotFound(_) => break,
          }
-         self.heat.cool(&mut temp);
       }
 
       /* assert that the best is really a local optimum */
@@ -108,14 +113,6 @@ mod temperature {
    use num::cast::AsPrimitive;
 
    use super::*;
-
-   fn accept_prob(new: usize, old: usize, temp: f64, rng: &mut impl Rng) -> bool {
-      use rand::distributions::*;
-      let new = new as f64;
-      let old = old as f64;
-      let p = (-(new - old) / temp).exp();
-      p >= rng.sample(Uniform::new(0.0, 1.0))
-   }
 
    pub struct DefaultTemperature {
       pub initial_temperature: f32,
@@ -138,13 +135,8 @@ mod temperature {
       fn acceptance_probability<'a>(&self, new: &Solution<'a, P>, current: &Solution<'a, P>, temp: &f32) -> f32 {
          let new: f32 = new.cost().as_();
          let current: f32 = current.cost().as_();
-//         let p = (-(new - current) / temp).exp();
-         let delta = (new - current + 1.0);
+         let delta = new - current + 1.0;
          let p = (-delta / temp).exp();
-//         eprintln!("p = {:?}", p);
-//         let current: f32 = current.cost().as_();
-//         let p = (-(new - current) / temp).exp();
-//         println!("probability {}", p);
          p
       }
 
